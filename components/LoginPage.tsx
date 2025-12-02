@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { refresh } = useAuth();
+  const { setUserFromLogin } = useAuth();
   const [isSignup, setIsSignup] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -101,12 +101,15 @@ export default function LoginPage() {
     setMessage(null);
 
     try {
-      await adminLogin(adminLoginData);
-      await refresh();
+      const response = await adminLogin(adminLoginData);
+      if (response.user_data) {
+        setUserFromLogin(response.user_data, 'admin');
+      } else {
+        setLoading(false);
+      }
       router.push('/app');
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message || 'Login failed' });
-    } finally {
       setLoading(false);
     }
   };

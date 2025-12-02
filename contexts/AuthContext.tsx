@@ -8,6 +8,7 @@ interface AuthContextType {
   user: UserInfo | null;
   loading: boolean;
   refresh: () => Promise<void>;
+  setUserFromLogin: (userData: any, type: 'admin' | 'client') => void;
   logout: () => Promise<void>;
 }
 
@@ -26,6 +27,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       setUser(null);
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const setUserFromLogin = (userData: any, type: 'admin' | 'client') => {
+    if (userData) {
+      const userInfo: UserInfo = {
+        authenticated: true,
+        user: {
+          user_id: userData.user_id,
+          first_name: userData.first_name,
+          last_name: userData.last_name,
+          email: userData.email,
+          role: userData.role,
+          is_active: userData.is_active,
+        },
+        type,
+      };
+      setUser(userInfo);
       setLoading(false);
     }
   };
@@ -55,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, refresh, logout }}>
+    <AuthContext.Provider value={{ user, loading, refresh, setUserFromLogin, logout }}>
       {children}
     </AuthContext.Provider>
   );
