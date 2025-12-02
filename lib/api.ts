@@ -86,9 +86,9 @@ async function apiRequest<T>(
 ): Promise<T> {
   try {
     const token = getSessionToken();
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string>),
     };
 
     // Add Authorization header if token exists
@@ -206,7 +206,7 @@ export async function searchTrademarks(
     formData.append('file', file);
     const token = getSessionToken();
 
-    const headers: HeadersInit = {};
+    const headers: Record<string, string> = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -253,7 +253,7 @@ export async function processPdf(
     formData.append('file', file);
     const token = getSessionToken();
 
-    const headers: HeadersInit = {};
+    const headers: Record<string, string> = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
