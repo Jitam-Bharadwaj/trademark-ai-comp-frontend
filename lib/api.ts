@@ -3,6 +3,33 @@
  */
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
+const SESSION_TOKEN_KEY = 'session_token';
+
+/**
+ * Get session token from storage (prefer sessionStorage, fallback to localStorage)
+ */
+function getSessionToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return sessionStorage.getItem(SESSION_TOKEN_KEY) || localStorage.getItem(SESSION_TOKEN_KEY);
+}
+
+/**
+ * Store session token in both localStorage and sessionStorage
+ */
+function setSessionToken(token: string): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(SESSION_TOKEN_KEY, token);
+  sessionStorage.setItem(SESSION_TOKEN_KEY, token);
+}
+
+/**
+ * Clear session token from both storages
+ */
+function clearSessionToken(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(SESSION_TOKEN_KEY);
+  sessionStorage.removeItem(SESSION_TOKEN_KEY);
+}
 
 export interface LoginRequest {
   email: string;
@@ -51,21 +78,34 @@ export interface UserInfo {
 }
 
 /**
- * Make API request with credentials
+ * Make API request with credentials and session token
  */
 async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
   try {
+    const token = getSessionToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    // Add Authorization header if token exists
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
     });
+
+    // Clear token on authentication errors
+    if (response.status === 401 || response.status === 403) {
+      clearSessionToken();
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
@@ -96,20 +136,34 @@ export async function clientSignup(data: SignupRequest): Promise<SignupResponse>
  * Client login
  */
 export async function clientLogin(data: LoginRequest): Promise<LoginResponse> {
-  return apiRequest<LoginResponse>('/auth/client/login', {
+  const response = await apiRequest<LoginResponse>('/auth/client/login', {
     method: 'POST',
     body: JSON.stringify(data),
   });
+  
+  // Store session token if present
+  if (response.session_token) {
+    setSessionToken(response.session_token);
+  }
+  
+  return response;
 }
 
 /**
  * Admin login
  */
 export async function adminLogin(data: LoginRequest): Promise<LoginResponse> {
-  return apiRequest<LoginResponse>('/auth/admin/login', {
+  const response = await apiRequest<LoginResponse>('/auth/admin/login', {
     method: 'POST',
     body: JSON.stringify(data),
   });
+  
+  // Store session token if present
+  if (response.session_token) {
+    setSessionToken(response.session_token);
+  }
+  
+  return response;
 }
 
 /**
@@ -117,6 +171,7 @@ export async function adminLogin(data: LoginRequest): Promise<LoginResponse> {
  */
 export async function clientLogout(): Promise<void> {
   await apiRequest('/auth/client/logout', { method: 'POST' });
+  clearSessionToken();
 }
 
 /**
@@ -124,6 +179,7 @@ export async function clientLogout(): Promise<void> {
  */
 export async function adminLogout(): Promise<void> {
   await apiRequest('/auth/admin/logout', { method: 'POST' });
+  clearSessionToken();
 }
 
 /**
@@ -148,15 +204,27 @@ export async function searchTrademarks(
   try {
     const formData = new FormData();
     formData.append('file', file);
+    const token = getSessionToken();
+
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
     const response = await fetch(
       `${API_BASE}/search?top_k=${topK}&threshold=${threshold}`,
       {
         method: 'POST',
         credentials: 'include',
+        headers,
         body: formData,
       }
     );
+
+    // Clear token on authentication errors
+    if (response.status === 401 || response.status === 403) {
+      clearSessionToken();
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
@@ -183,15 +251,27 @@ export async function processPdf(
   try {
     const formData = new FormData();
     formData.append('file', file);
+    const token = getSessionToken();
+
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
     const response = await fetch(
       `${API_BASE}/process-pdf-and-index?save_images=${saveImages}&auto_index=${autoIndex}`,
       {
         method: 'POST',
         credentials: 'include',
+        headers,
         body: formData,
       }
     );
+
+    // Clear token on authentication errors
+    if (response.status === 401 || response.status === 403) {
+      clearSessionToken();
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
