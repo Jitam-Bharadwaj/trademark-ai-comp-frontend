@@ -37,6 +37,15 @@ export interface SignupResponse {
   user_id?: number;
 }
 
+/**
+ * Refresh marks cache to ensure latest data is loaded
+ */
+export async function refreshMarksCache(): Promise<void> {
+  await apiRequest('/refresh-marks-cache', {
+    method: 'POST',
+  });
+}
+
 export interface UserInfo {
   authenticated: boolean;
   user?: {
@@ -146,6 +155,9 @@ export async function searchTrademarks(
   threshold: number = 0.5
 ): Promise<any> {
   try {
+    // Ensure cache is fresh before searching
+    await refreshMarksCache();
+
     const formData = new FormData();
     formData.append('file', file);
 
@@ -217,6 +229,9 @@ export async function searchTrademarksByText(
   trademarkClass?: string
 ): Promise<any> {
   try {
+    // Ensure cache is fresh before searching
+    await refreshMarksCache();
+
     const payload: any = {
       query_text: queryText,
       top_k: topK,
