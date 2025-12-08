@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { searchTrademarks } from '@/lib/api';
+import { useState } from 'react';
+import { searchTrademarksByText } from '@/lib/api';
 import ImageModal from '../ImageModal';
 
 interface SearchResult {
@@ -130,13 +130,13 @@ function ResultItem({ result, index, API_BASE, onImageClick }: ResultItemProps) 
   );
 }
 
-export default function ImageSearchTab() {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+export default function TextSearchTab() {
+  const [queryText, setQueryText] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [topK, setTopK] = useState(10);
-  const [threshold, setThreshold] = useState(0.5);
+  const [threshold, setThreshold] = useState(1);
+  const [trademarkClass, setTrademarkClass] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<{
     src: string;
@@ -144,42 +144,10 @@ export default function ImageSearchTab() {
     similarity: number;
     metadata: any;
   } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setError(null);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result as string);
-      };
-      reader.readAsDataURL(selectedFile);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && droppedFile.type.startsWith('image/')) {
-      setFile(droppedFile);
-      setError(null);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result as string);
-      };
-      reader.readAsDataURL(droppedFile);
-    }
-  };
 
   const handleSearch = async () => {
-    if (!file) {
-      setError('Please select an image file first');
+    if (!queryText.trim()) {
+      setError('Please enter a search query');
       return;
     }
 
@@ -187,7 +155,12 @@ export default function ImageSearchTab() {
     setError(null);
 
     try {
-      const data = await searchTrademarks(file, topK, threshold);
+      const data = await searchTrademarksByText(
+        queryText.trim(),
+        topK,
+        threshold,
+        trademarkClass.trim() || undefined
+      );
       setResults(data.results || []);
     } catch (err: any) {
       setError(err.message || 'Search failed');
@@ -203,85 +176,28 @@ export default function ImageSearchTab() {
     <div className="space-y-10">
       {/* Section Header */}
       <div className="border-b border-gray-200 pb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-3">Search Similar Trademarks</h2>
-        <p className="text-gray-600 text-base">Upload an image to find similar trademarks in the database</p>
+        <h2 className="text-3xl font-bold text-gray-900 mb-3">Text Search Similar Trademarks</h2>
+        <p className="text-gray-600 text-base">Enter text to find similar trademarks in the database</p>
       </div>
 
-      {/* Upload Section */}
+      {/* Search Section */}
       <div className="space-y-6">
-        <div
-          className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/30 transition-all bg-gray-50/50"
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileSelect}
-            className="hidden"
+        {/* Query Text Input */}
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-gray-700">
+            Search Query
+          </label>
+          <textarea
+            value={queryText}
+            onChange={(e) => setQueryText(e.target.value)}
+            placeholder="Enter trademark text to search..."
+            rows={4}
+            className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
           />
-          {!preview ? (
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                <div className="w-20 h-20 bg-blue-100 rounded-2xl flex items-center justify-center">
-                  <svg
-                    className="text-blue-600"
-                    width="40"
-                    height="40"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                    <polyline points="21,15 16,10 5,21"></polyline>
-                  </svg>
-                </div>
-              </div>
-              <div>
-                <div className="text-lg font-semibold text-gray-700 mb-1">
-                  Click to upload or drag & drop an image
-                </div>
-                <div className="text-sm text-gray-500">Supports JPG, PNG, GIF formats (Max 100MB)</div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                <div className="relative">
-                  <img
-                    src={preview}
-                    alt="Preview"
-                    className="max-w-md w-full h-auto rounded-lg shadow-lg border-4 border-blue-200"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="text-sm font-semibold text-gray-700">{file?.name}</div>
-                <div className="text-xs text-gray-500">
-                  {(file?.size ? file.size / 1024 / 1024 : 0).toFixed(2)} MB
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setFile(null);
-                    setPreview(null);
-                    setResults([]);
-                  }}
-                  className="text-sm text-red-600 hover:text-red-700 font-semibold"
-                >
-                  Remove File
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Search Parameters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-8 bg-gray-50 rounded-xl border border-gray-200">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-8 bg-gray-50 rounded-xl border border-gray-200">
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-gray-700">
               Number of Results
@@ -311,12 +227,24 @@ export default function ImageSearchTab() {
               className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700">
+              Trademark Class (Optional)
+            </label>
+            <input
+              type="text"
+              value={trademarkClass}
+              onChange={(e) => setTrademarkClass(e.target.value)}
+              placeholder="e.g., 25, 35"
+              className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            />
+          </div>
         </div>
 
         {/* Search Button */}
         <button
           onClick={handleSearch}
-          disabled={!file || loading}
+          disabled={!queryText.trim() || loading}
           className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading ? (
@@ -374,3 +302,7 @@ export default function ImageSearchTab() {
     </div>
   );
 }
+
+
+
+

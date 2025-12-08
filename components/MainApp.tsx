@@ -4,10 +4,11 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import ImageSearchTab from './tabs/ImageSearchTab';
+import TextSearchTab from './tabs/TextSearchTab';
 import PDFProcessingTab from './tabs/PDFProcessingTab';
 import TrademarkDetailsTab from './tabs/TrademarkDetailsTab';
 
-type Tab = 'search' | 'pdf' | 'trademark';
+type Tab = 'search' | 'textSearch' | 'pdf' | 'trademark';
 
 export default function MainApp() {
   const { user, logout } = useAuth();
@@ -15,6 +16,7 @@ export default function MainApp() {
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'search', label: 'Image Search', icon: '🔍' },
+    { id: 'textSearch', label: 'Text Search', icon: '📝' },
     { id: 'pdf', label: 'PDF Processing', icon: '📄' },
     { id: 'trademark', label: 'Trademark Details', icon: '🏷️' },
   ];
@@ -199,6 +201,7 @@ export default function MainApp() {
         <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 overflow-hidden relative z-10">
           <div className="p-10">
             {activeTab === 'search' && <ImageSearchTab />}
+            {activeTab === 'textSearch' && <TextSearchTab />}
             {activeTab === 'pdf' && <PDFProcessingTab />}
             {activeTab === 'trademark' && <TrademarkDetailsTab />}
           </div>

@@ -208,6 +208,49 @@ export async function processPdf(
 }
 
 /**
+ * Search trademarks by text
+ */
+export async function searchTrademarksByText(
+  queryText: string,
+  topK: number = 10,
+  threshold: number = 1,
+  trademarkClass?: string
+): Promise<any> {
+  try {
+    const payload: any = {
+      query_text: queryText,
+      top_k: topK,
+      threshold: threshold,
+    };
+
+    if (trademarkClass) {
+      payload.trademark_class = trademarkClass;
+    }
+
+    const response = await fetch(`${API_BASE}/search-text`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Text search failed');
+    }
+
+    return response.json();
+  } catch (error: any) {
+    if (error.message.includes('fetch')) {
+      throw new Error(`Cannot connect to backend. Please ensure the API server is running on ${API_BASE}`);
+    }
+    throw error;
+  }
+}
+
+/**
  * Get trademark details
  */
 export async function getTrademarkDetails(trademarkId: string): Promise<any> {
