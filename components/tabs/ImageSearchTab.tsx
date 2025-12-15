@@ -12,12 +12,16 @@ interface SearchResult {
   applicant_name?: string;
   application_no?: string;
   matched_mark?: string;
+  has_image?: boolean;
+  trademark_type?: string;
   metadata: {
     name?: string;
     applicant_name?: string;
     application_no?: string;
     trademark_class?: string;
     original_filename?: string;
+    pdf_source?: string;
+    trademark_type?: string;
   };
 }
 
@@ -32,6 +36,20 @@ function ResultItem({ result, index, API_BASE, onImageClick }: ResultItemProps) 
   const [imageError, setImageError] = useState(false);
   const imageUrl = `${API_BASE}/image/${result.trademark_id}`;
 
+  // Determine if image should be shown based on source
+  // - "Self Database Trademark": never show image
+  // - "Indian Trademark Journal": show only if has_image is true
+  // - Other sources: show image
+  const shouldShowImage = (() => {
+    if (result.source === 'Self Database Trademark') {
+      return false;
+    }
+    if (result.source === 'Indian Trademark Journal') {
+      return result.has_image === true;
+    }
+    return true;
+  })();
+
   return (
     <div
       className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:shadow-xl transition-all hover:border-blue-300"
@@ -41,7 +59,7 @@ function ResultItem({ result, index, API_BASE, onImageClick }: ResultItemProps) 
         <div className="flex-shrink-0">
           <div className="relative">
             <div className="w-40 h-40 bg-gray-50 rounded-lg border-2 border-gray-200 overflow-hidden">
-              {!imageError ? (
+              {shouldShowImage && !imageError ? (
                 <img
                   src={imageUrl}
                   alt={`Trademark ${result.trademark_id}`}
@@ -120,7 +138,17 @@ function ResultItem({ result, index, API_BASE, onImageClick }: ResultItemProps) 
                 Filename
               </div>
               <div className="text-sm text-gray-900 truncate">
-                {result.metadata.original_filename || 'N/A'}
+                {(() => {
+                  const trademarkType = result.trademark_type || result.metadata.trademark_type;
+                  if (result.source === 'Indian Trademark Journal') {
+                    if (trademarkType === 'text_only') {
+                      return result.metadata.pdf_source || 'N/A';
+                    }
+                    // image_based or default
+                    return result.metadata.original_filename || 'N/A';
+                  }
+                  return result.metadata.original_filename || 'N/A';
+                })()}
               </div>
             </div>
           </div>
