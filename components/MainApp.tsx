@@ -6,9 +6,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import ImageSearchTab from './tabs/ImageSearchTab';
 import TextSearchTab from './tabs/TextSearchTab';
 import PDFProcessingTab from './tabs/PDFProcessingTab';
-import TrademarkDetailsTab from './tabs/TrademarkDetailsTab';
+import ReportGenerationTab from './tabs/ReportGenerationTab';
 
-type Tab = 'search' | 'textSearch' | 'pdf' | 'trademark';
+type Tab = 'search' | 'textSearch' | 'pdf' | 'reports';
 
 export default function MainApp() {
   const { user, logout } = useAuth();
@@ -18,7 +18,7 @@ export default function MainApp() {
     { id: 'search', label: 'Image Search', icon: '🔍' },
     { id: 'textSearch', label: 'Text Search', icon: '📝' },
     { id: 'pdf', label: 'PDF Processing', icon: '📄' },
-    { id: 'trademark', label: 'Trademark Details', icon: '🏷️' },
+    { id: 'reports', label: 'Report Generation', icon: '📊' },
   ];
 
   return (
@@ -203,7 +203,7 @@ export default function MainApp() {
             {activeTab === 'search' && <ImageSearchTab />}
             {activeTab === 'textSearch' && <TextSearchTab />}
             {activeTab === 'pdf' && <PDFProcessingTab />}
-            {activeTab === 'trademark' && <TrademarkDetailsTab />}
+            {activeTab === 'reports' && <ReportGenerationTab />}
           </div>
         </div>
       </main>

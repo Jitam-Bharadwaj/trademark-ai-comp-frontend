@@ -272,3 +272,47 @@ export async function getTrademarkDetails(trademarkId: string): Promise<any> {
   return apiRequest(`/trademark/${encodeURIComponent(trademarkId)}`);
 }
 
+/**
+ * Report interface
+ */
+export interface Report {
+  report_id: string;
+  monday_date: string;
+  report_date: string;
+  total_journal_trademarks: number;
+  trademarks_with_similarities: number;
+  total_similarities_found: number;
+  pdf_filename: string;
+  pdf_path: string;
+}
+
+export interface ReportsResponse {
+  total_reports: number;
+  reports: Report[];
+}
+
+/**
+ * Get all reports
+ */
+export async function getReports(): Promise<ReportsResponse> {
+  return apiRequest<ReportsResponse>('/reports');
+}
+
+/**
+ * Download a report by report_id
+ */
+export async function downloadReport(reportId: string): Promise<Blob> {
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
+  const response = await fetch(`${API_BASE}/reports/${encodeURIComponent(reportId)}`, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    throw new Error(error.detail || `Download failed: ${response.statusText}`);
+  }
+
+  return response.blob();
+}
+
