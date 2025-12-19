@@ -70,13 +70,39 @@ export default function ReportGenerationTab() {
     }
   };
 
+  // Parse server date string as UTC and return Date object
+  const parseServerDate = (dateString: string): Date => {
+    try {
+      // Parse the date string (format: "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DD")
+      // The server returns time in UTC
+      if (dateString.includes(' ')) {
+        // Format: "YYYY-MM-DD HH:MM:SS" - parse as UTC
+        const [datePart, timePart] = dateString.split(' ');
+        const [year, month, day] = datePart.split('-').map(Number);
+        const [hour, minute, second] = timePart.split(':').map(Number);
+        
+        // Create date in UTC
+        return new Date(Date.UTC(year, month - 1, day, hour, minute, second || 0));
+      } else {
+        // Format: "YYYY-MM-DD" - parse as UTC at midnight
+        const [year, month, day] = dateString.split('-').map(Number);
+        return new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+      }
+    } catch (error) {
+      // Fallback: try parsing as-is
+      console.warn('Date parsing error:', error);
+      return new Date(dateString);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
+      const date = parseServerDate(dateString);
+      return date.toLocaleDateString('en-IN', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
+        timeZone: 'Asia/Kolkata',
       });
     } catch {
       return dateString;
@@ -85,10 +111,11 @@ export default function ReportGenerationTab() {
 
   const formatMonthYear = (dateString: string) => {
     try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
+      const date = parseServerDate(dateString);
+      return date.toLocaleDateString('en-IN', {
         month: 'long',
         year: 'numeric',
+        timeZone: 'Asia/Kolkata',
       });
     } catch {
       return dateString;
@@ -97,24 +124,48 @@ export default function ReportGenerationTab() {
 
   const formatTime = (dateString: string) => {
     try {
-      const date = new Date(dateString);
-      return date.toLocaleTimeString('en-US', {
+      const date = parseServerDate(dateString);
+      return date.toLocaleTimeString('en-IN', {
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: 'Asia/Kolkata',
+        hour12: true,
       });
     } catch {
       return '';
     }
   };
 
+  const formatDateTime = (dateString: string) => {
+    try {
+      const date = parseServerDate(dateString);
+      return date.toLocaleString('en-IN', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Kolkata',
+        hour12: true,
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
   const getWeekRange = (mondayDate: string) => {
     try {
-      const monday = new Date(mondayDate);
+      const monday = parseServerDate(mondayDate);
+      // Calculate Sunday by adding 6 days in UTC, then format in IST
       const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
+      sunday.setUTCDate(monday.getUTCDate() + 6);
       
       const formatDay = (date: Date) => {
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return date.toLocaleDateString('en-IN', { 
+          month: 'short', 
+          day: 'numeric',
+          timeZone: 'Asia/Kolkata',
+        });
       };
       
       return `${formatDay(monday)} - ${formatDay(sunday)}`;
@@ -123,16 +174,35 @@ export default function ReportGenerationTab() {
     }
   };
 
-  // Group reports by month and year
+  // Group reports by month and year (using IST)
   const groupedReports = useMemo(() => {
     const grouped: GroupedReports = {};
     reports.forEach((report) => {
-      const date = new Date(report.monday_date);
-      const key = `${date.getFullYear()}-${date.getMonth()}`;
-      if (!grouped[key]) {
-        grouped[key] = [];
+      try {
+        const date = parseServerDate(report.monday_date);
+        // Format to get year and month in IST
+        const formatter = new Intl.DateTimeFormat('en-IN', {
+          year: 'numeric',
+          month: 'numeric',
+          timeZone: 'Asia/Kolkata',
+        });
+        const parts = formatter.formatToParts(date);
+        const year = parts.find(p => p.type === 'year')?.value || '';
+        const month = parts.find(p => p.type === 'month')?.value || '';
+        const key = `${year}-${parseInt(month) - 1}`; // Month is 0-indexed for grouping
+        if (!grouped[key]) {
+          grouped[key] = [];
+        }
+        grouped[key].push(report);
+      } catch {
+        // Fallback: use original date parsing
+        const date = new Date(report.monday_date);
+        const key = `${date.getFullYear()}-${date.getMonth()}`;
+        if (!grouped[key]) {
+          grouped[key] = [];
+        }
+        grouped[key].push(report);
       }
-      grouped[key].push(report);
     });
     return grouped;
   }, [reports]);
@@ -270,7 +340,7 @@ export default function ReportGenerationTab() {
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-500">Generated on</span>
                             <span className="font-medium text-gray-900">
-                              {formatDate(report.report_date)} at {formatTime(report.report_date)}
+                              {formatDateTime(report.report_date)} IST
                             </span>
                           </div>
                           <div className="pt-3 border-t border-gray-100">
