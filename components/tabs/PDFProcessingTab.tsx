@@ -1,7 +1,26 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { processPdf } from '@/lib/api';
+
+// Format date as YYYY-MM-DD for API
+const formatDateForAPI = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Format date for display
+const formatDateForDisplay = (date: Date): string => {
+  return date.toLocaleDateString('en-IN', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'Asia/Kolkata',
+  });
+};
 
 export default function PDFProcessingTab() {
   const [file, setFile] = useState<File | null>(null);
@@ -10,7 +29,55 @@ export default function PDFProcessingTab() {
   const [error, setError] = useState<string | null>(null);
   const [saveImages, setSaveImages] = useState(true);
   const [autoIndex, setAutoIndex] = useState(true);
+  const [selectedMonday, setSelectedMonday] = useState<string>('');
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Get all Mondays: 4 before, current (if Monday), and 4 ahead
+  const availableMondays = useMemo(() => {
+    const mondays: { date: Date; formatted: string }[] = [];
+    const today = new Date();
+    
+    // Find the most recent Monday (or today if it's Monday)
+    const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1; // Days to subtract to get to Monday
+    
+    // Start from the most recent Monday
+    const startMonday = new Date(today);
+    startMonday.setDate(today.getDate() - daysFromMonday);
+    startMonday.setHours(0, 0, 0, 0);
+    
+    // Generate 4 Mondays before
+    for (let i = 4; i >= 1; i--) {
+      const monday = new Date(startMonday);
+      monday.setDate(startMonday.getDate() - (i * 7));
+      const formatted = formatDateForAPI(monday);
+      mondays.push({ date: monday, formatted });
+    }
+    
+    // Add current Monday (or next Monday if today is not Monday)
+    const formatted = formatDateForAPI(startMonday);
+    mondays.push({ date: startMonday, formatted });
+    
+    // Generate 4 Mondays ahead
+    for (let i = 1; i <= 4; i++) {
+      const monday = new Date(startMonday);
+      monday.setDate(startMonday.getDate() + (i * 7));
+      const formatted = formatDateForAPI(monday);
+      mondays.push({ date: monday, formatted });
+    }
+    
+    return mondays;
+  }, []);
+
+  // Set default Monday on mount
+  useEffect(() => {
+    if (!selectedMonday && availableMondays.length > 0) {
+      // Set to the middle Monday (the current/recent Monday)
+      const currentMondayIndex = Math.floor(availableMondays.length / 2);
+      setSelectedMonday(availableMondays[currentMondayIndex].formatted);
+    }
+  }, [availableMondays, selectedMonday]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -43,11 +110,16 @@ export default function PDFProcessingTab() {
       return;
     }
 
+    if (!selectedMonday) {
+      setError('Please select a journal Monday date');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const data = await processPdf(file, saveImages, autoIndex);
+      const data = await processPdf(file, saveImages, autoIndex, selectedMonday);
       setResults(data);
     } catch (err: any) {
       setError(err.message || 'PDF processing failed');
@@ -147,6 +219,118 @@ export default function PDFProcessingTab() {
           )}
         </div>
 
+        {/* Journal Monday Date Selection - Accordion */}
+        <div className="bg-blue-50 rounded-xl border border-blue-200 overflow-hidden">
+          {/* Accordion Header */}
+          <button
+            type="button"
+            onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+            className="w-full p-6 flex items-center justify-between hover:bg-blue-100 transition-colors"
+          >
+            <div className="flex items-center gap-4 flex-1 text-left">
+              <div className="flex-shrink-0">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="text-blue-600"
+                >
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                  Journal Monday Date <span className="text-red-500">*</span>
+                </div>
+                {selectedMonday ? (
+                  <div className="text-base font-semibold text-gray-900">
+                    {formatDateForDisplay(
+                      availableMondays.find((m) => m.formatted === selectedMonday)?.date || new Date()
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500 italic">No date selected</div>
+                )}
+              </div>
+            </div>
+            <div className="flex-shrink-0 ml-4">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className={`text-gray-600 transition-transform duration-200 ${
+                  isDatePickerOpen ? 'rotate-180' : ''
+                }`}
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+          </button>
+
+          {/* Accordion Content */}
+          {isDatePickerOpen && (
+            <div className="px-6 pb-6 pt-2 border-t border-blue-200">
+              <div className="space-y-3 mt-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Select the Monday date for this journal
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {availableMondays.map((monday) => (
+                    <button
+                      key={monday.formatted}
+                      type="button"
+                      onClick={() => {
+                        setSelectedMonday(monday.formatted);
+                        setIsDatePickerOpen(false); // Close accordion after selection
+                      }}
+                      className={`px-4 py-3 rounded-lg border-2 transition-all text-left ${
+                        selectedMonday === monday.formatted
+                          ? 'border-blue-600 bg-blue-600 text-white shadow-md'
+                          : 'border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:bg-blue-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-semibold text-sm">
+                            {formatDateForDisplay(monday.date)}
+                          </div>
+                          <div className={`text-xs mt-1 ${
+                            selectedMonday === monday.formatted ? 'text-blue-100' : 'text-gray-500'
+                          }`}>
+                            {monday.formatted}
+                          </div>
+                        </div>
+                        {selectedMonday === monday.formatted && (
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            className="text-white"
+                          >
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Options Section */}
         <div className="p-8 bg-gray-50 rounded-xl border border-gray-200 space-y-5">
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-5">
@@ -179,7 +363,7 @@ export default function PDFProcessingTab() {
         {/* Process Button */}
         <button
           onClick={handleProcess}
-          disabled={!file || loading}
+          disabled={!file || !selectedMonday || loading}
           className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {loading ? (

@@ -190,11 +190,17 @@ export async function searchTrademarks(
 export async function processPdf(
   file: File,
   saveImages: boolean = true,
-  autoIndex: boolean = true
+  autoIndex: boolean = true,
+  journalMondayDate?: string
 ): Promise<any> {
   try {
     const formData = new FormData();
     formData.append('file', file);
+    
+    // Add journal_monday_date if provided
+    if (journalMondayDate) {
+      formData.append('journal_monday_date', journalMondayDate);
+    }
 
     const response = await fetch(
       `${API_BASE}/process-pdf-and-index?save_images=${saveImages}&auto_index=${autoIndex}`,
