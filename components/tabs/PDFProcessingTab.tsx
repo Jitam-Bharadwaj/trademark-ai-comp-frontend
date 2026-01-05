@@ -30,7 +30,7 @@ export default function PDFProcessingTab() {
   const [saveImages, setSaveImages] = useState(true);
   const [autoIndex, setAutoIndex] = useState(true);
   const [selectedMonday, setSelectedMonday] = useState<string>('');
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [openSection, setOpenSection] = useState<'upload' | 'monday' | 'options'>('upload');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get all Mondays: 4 before, current (if Monday), and 4 ahead
@@ -137,10 +137,43 @@ export default function PDFProcessingTab() {
         <p className="text-gray-600 text-base">Upload a PDF to extract and index trademark images</p>
       </div>
 
-      {/* Upload Section */}
-      <div className="space-y-6">
-        <div
-          className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/30 transition-all bg-gray-50/50"
+      {/* Guided Accordion Flow */}
+      <div className="space-y-4">
+        {/* Upload Accordion */}
+        <div className="rounded-xl border border-gray-200 overflow-hidden shadow-sm bg-white">
+          <button
+            type="button"
+            onClick={() => setOpenSection(openSection === 'upload' ? 'monday' : 'upload')}
+            className="w-full flex items-center justify-between px-5 py-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gray-900 text-white flex items-center justify-center font-semibold text-sm">
+                1
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-semibold text-gray-900">Upload PDF</div>
+                <div className="text-xs text-gray-600">
+                  {file ? `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB` : 'Choose a PDF to process'}
+                </div>
+              </div>
+            </div>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              className={`transition-transform ${openSection === 'upload' ? 'rotate-180' : ''}`}
+            >
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </button>
+
+          {openSection === 'upload' && (
+            <div className="p-6 border-t border-gray-200">
+              <div
+                className="border-2 border-dashed border-gray-300 rounded-xl p-10 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/30 transition-all bg-gray-50/50"
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
@@ -155,11 +188,11 @@ export default function PDFProcessingTab() {
           {!file ? (
             <div className="space-y-4">
               <div className="flex justify-center">
-                <div className="w-20 h-20 bg-red-100 rounded-2xl flex items-center justify-center">
+                      <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center">
                   <svg
                     className="text-red-600"
-                    width="40"
-                    height="40"
+                          width="32"
+                          height="32"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -182,27 +215,9 @@ export default function PDFProcessingTab() {
           ) : (
             <div className="space-y-4">
               <div className="flex justify-center">
-                <div className="px-6 py-4 bg-red-50 border-2 border-red-200 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <svg
-                      className="text-red-600"
-                      width="32"
-                      height="32"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                      <polyline points="14,2 14,8 20,8"></polyline>
-                    </svg>
-                    <div className="text-left">
-                      <div className="font-semibold text-gray-900">{file.name}</div>
-                      <div className="text-sm text-gray-600">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </div>
-                    </div>
-                  </div>
+                      <div className="px-6 py-4 bg-gray-900 text-white rounded-xl shadow-sm">
+                        <div className="font-semibold">{file.name}</div>
+                        <div className="text-sm text-gray-200">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
                 </div>
               </div>
               <button
@@ -218,124 +233,134 @@ export default function PDFProcessingTab() {
             </div>
           )}
         </div>
+            </div>
+          )}
+        </div>
 
-        {/* Journal Monday Date Selection - Accordion */}
-        <div className="bg-blue-50 rounded-xl border border-blue-200 overflow-hidden">
-          {/* Accordion Header */}
+        {/* Monday Accordion */}
+        <div className="rounded-xl border border-blue-200 overflow-hidden shadow-sm bg-white">
           <button
             type="button"
-            onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-            className="w-full p-6 flex items-center justify-between hover:bg-blue-100 transition-colors"
+            onClick={() => setOpenSection(openSection === 'monday' ? 'options' : 'monday')}
+            className="w-full flex items-center justify-between px-5 py-4 bg-blue-600 text-white transition-colors hover:bg-blue-700"
           >
-            <div className="flex items-center gap-4 flex-1 text-left">
-              <div className="flex-shrink-0">
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-blue-600"
-                >
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center border border-white/20 font-semibold text-sm">
+                2
               </div>
-              <div className="flex-1">
-                <div className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-1">
-                  Journal Monday Date <span className="text-red-500">*</span>
+              <div className="text-left">
+                <div className="text-sm font-semibold uppercase tracking-wide">Journal Monday Date</div>
+                <div className="text-xs text-blue-100">
+                  {selectedMonday
+                    ? `Selected: ${selectedMonday} (${formatDateForDisplay(new Date(selectedMonday))})`
+                    : 'Choose the Monday for this journal'}
                 </div>
-                {selectedMonday ? (
-                  <div className="text-base font-semibold text-gray-900">
-                    {formatDateForDisplay(
-                      availableMondays.find((m) => m.formatted === selectedMonday)?.date || new Date()
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-500 italic">No date selected</div>
-                )}
               </div>
             </div>
-            <div className="flex-shrink-0 ml-4">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                className={`text-gray-600 transition-transform duration-200 ${
-                  isDatePickerOpen ? 'rotate-180' : ''
-                }`}
-              >
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </div>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              className={`transition-transform ${openSection === 'monday' ? 'rotate-180' : ''}`}
+            >
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
           </button>
 
-          {/* Accordion Content */}
-          {isDatePickerOpen && (
-            <div className="px-6 pb-6 pt-2 border-t border-blue-200">
-              <div className="space-y-3 mt-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  Select the Monday date for this journal
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {availableMondays.map((monday) => (
-                    <button
-                      key={monday.formatted}
-                      type="button"
-                      onClick={() => {
-                        setSelectedMonday(monday.formatted);
-                        setIsDatePickerOpen(false); // Close accordion after selection
-                      }}
-                      className={`px-4 py-3 rounded-lg border-2 transition-all text-left ${
-                        selectedMonday === monday.formatted
-                          ? 'border-blue-600 bg-blue-600 text-white shadow-md'
-                          : 'border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:bg-blue-50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-semibold text-sm">
-                            {formatDateForDisplay(monday.date)}
-                          </div>
-                          <div className={`text-xs mt-1 ${
-                            selectedMonday === monday.formatted ? 'text-blue-100' : 'text-gray-500'
-                          }`}>
-                            {monday.formatted}
-                          </div>
-                        </div>
-                        {selectedMonday === monday.formatted && (
-                          <svg
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            className="text-white"
-                          >
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                        )}
-                      </div>
-                    </button>
-                  ))}
+          {openSection === 'monday' && (
+            <div className="p-6 space-y-4 bg-gradient-to-br from-white to-blue-50">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-semibold">
+                  2
                 </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Select the Monday date</p>
+                  <p className="text-xs text-gray-600">
+                    Only Mondays are shown. Pick the Monday that matches the journal you are processing.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {availableMondays.map((monday) => (
+                  <button
+                    key={monday.formatted}
+                    type="button"
+                    onClick={() => setSelectedMonday(monday.formatted)}
+                    className={`px-4 py-3 rounded-lg border transition-all text-left shadow-sm ${
+                      selectedMonday === monday.formatted
+                        ? 'border-blue-600 bg-white text-blue-700 ring-2 ring-blue-100'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-blue-400 hover:shadow-md'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-sm">{formatDateForDisplay(monday.date)}</div>
+                        <div
+                          className={`text-xs mt-1 ${
+                            selectedMonday === monday.formatted ? 'text-blue-500' : 'text-gray-500'
+                          }`}
+                        >
+                          {monday.formatted}
+                        </div>
+                      </div>
+                      {selectedMonday === monday.formatted && (
+                        <svg
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          className="text-blue-600"
+                        >
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      )}
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
           )}
         </div>
 
-        {/* Options Section */}
-        <div className="p-8 bg-gray-50 rounded-xl border border-gray-200 space-y-5">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-5">
-            Processing Options
-          </h3>
+        {/* Options Accordion */}
+        <div className="rounded-xl border border-gray-200 overflow-hidden shadow-sm bg-white">
+          <button
+            type="button"
+            onClick={() => setOpenSection(openSection === 'options' ? 'upload' : 'options')}
+            className="w-full flex items-center justify-between px-5 py-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gray-900 text-white flex items-center justify-center font-semibold text-sm">
+                3
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-semibold text-gray-900">Processing Options</div>
+                <div className="text-xs text-gray-600">
+                  {saveImages ? 'Saving images' : 'Not saving images'} · {autoIndex ? 'Auto-index on' : 'Auto-index off'}
+                </div>
+              </div>
+            </div>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              className={`transition-transform ${openSection === 'options' ? 'rotate-180' : ''}`}
+            >
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </button>
+
+          {openSection === 'options' && (
+            <div className="p-6 space-y-4">
           <label className="flex items-center gap-3 cursor-pointer group">
             <input
               type="checkbox"
@@ -358,6 +383,8 @@ export default function PDFProcessingTab() {
               Automatically index extracted images
             </span>
           </label>
+            </div>
+          )}
         </div>
 
         {/* Process Button */}

@@ -587,7 +587,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="mt-16 text-center text-sm text-gray-500">
-          <p className="mb-3">© 2024 Trademark Search System. All rights reserved.</p>
+          <p className="mb-3">© 2025 Trademark Search System. All rights reserved.</p>
           <div className="flex items-center justify-center gap-6">
             <a href="#" className="hover:text-gray-700 transition-colors">Security</a>
             <a href="#" className="hover:text-gray-700 transition-colors">Legal</a>

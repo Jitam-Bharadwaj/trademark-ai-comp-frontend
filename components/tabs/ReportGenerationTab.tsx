@@ -1,6 +1,7 @@
-'use client';
+                                                                                                                                                                                                                                                                        'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { getReports, downloadReport, Report } from '@/lib/api';
 
 interface GroupedReports {
@@ -8,6 +9,7 @@ interface GroupedReports {
 }
 
 export default function ReportGenerationTab() {
+  const router = useRouter();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,8 @@ export default function ReportGenerationTab() {
     };
   }, []);
 
-  const handleDownload = async (reportId: string, filename: string) => {
+  const handleDownload = async (e: React.MouseEvent, reportId: string, filename: string) => {
+    e.stopPropagation(); // Prevent card click
     setDownloadingId(reportId);
     try {
       const blob = await downloadReport(reportId);
@@ -68,6 +71,10 @@ export default function ReportGenerationTab() {
     } finally {
       setDownloadingId(null);
     }
+  };
+
+  const handleCardClick = (reportId: string) => {
+    router.push(`/app/report/${reportId}`);
   };
 
   // Parse server date string as UTC and return Date object
@@ -298,7 +305,8 @@ export default function ReportGenerationTab() {
                   {monthReports.map((report) => (
                     <div
                       key={report.report_id}
-                      className="group bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:border-blue-300"
+                      onClick={() => handleCardClick(report.report_id)}
+                      className="group bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:border-blue-300 cursor-pointer"
                     >
                       {/* Card Header */}
                       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-5 py-4 border-b border-gray-100">
@@ -352,7 +360,7 @@ export default function ReportGenerationTab() {
 
                         {/* Download Button */}
                         <button
-                          onClick={() => handleDownload(report.report_id, report.pdf_filename)}
+                          onClick={(e) => handleDownload(e, report.report_id, report.pdf_filename)}
                           disabled={downloadingId === report.report_id}
                           className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group-hover:shadow-lg"
                         >

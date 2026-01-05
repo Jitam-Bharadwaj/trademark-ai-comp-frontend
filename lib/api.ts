@@ -322,3 +322,28 @@ export async function downloadReport(reportId: string): Promise<Blob> {
   return response.blob();
 }
 
+/**
+ * Get report data by report_id
+ */
+export async function getReportData(reportId: string): Promise<any> {
+  return apiRequest(`/reports/${encodeURIComponent(reportId)}/data`);
+}
+
+/**
+ * Get applicant email by applicant name
+ */
+export async function getApplicantEmail(applicantName: string): Promise<string | null> {
+  try {
+    const encodedName = encodeURIComponent(applicantName);
+    const response = await apiRequest(`/applicant-email?applicant_name=${encodedName}`, {
+      method: 'GET',
+    }) as { email?: string };
+
+    return response.email || null;
+  } catch (error: any) {
+    // Return null if applicant not found or other error
+    console.warn(`Failed to fetch email for applicant "${applicantName}":`, error);
+    return null;
+  }
+}
+
