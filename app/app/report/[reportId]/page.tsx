@@ -108,15 +108,25 @@ export default function ReportDetailsPage() {
   // Parse server date string as UTC and return Date object
   const parseServerDate = (dateString: string): Date => {
     try {
+      // Handle ISO format: 2025-12-29T19:29:13.792941
+      if (dateString.includes('T')) {
+        const [datePart, timePart] = dateString.split('T');
+        const [year, month, day] = datePart.split('-').map(Number);
+        // Handle microseconds: split by '.' and take first part
+        const timeWithoutMicroseconds = timePart.split('.')[0];
+        const [hour, minute, second] = timeWithoutMicroseconds.split(':').map(Number);
+        return new Date(Date.UTC(year, month - 1, day, hour, minute, second || 0));
+      }
+      // Handle space-separated format (existing logic)
       if (dateString.includes(' ')) {
         const [datePart, timePart] = dateString.split(' ');
         const [year, month, day] = datePart.split('-').map(Number);
         const [hour, minute, second] = timePart.split(':').map(Number);
         return new Date(Date.UTC(year, month - 1, day, hour, minute, second || 0));
-      } else {
-        const [year, month, day] = dateString.split('-').map(Number);
-        return new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
       }
+      // Handle date-only format
+      const [year, month, day] = dateString.split('-').map(Number);
+      return new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
     } catch {
       return new Date(dateString);
     }
